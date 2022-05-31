@@ -21,15 +21,13 @@ except sqlite3.Error as error:
 @bot.message_handler(commands=["start"])
 def start(message):
     rmk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    us_reg = False
     # добавить проверку на наличие регистрации
-    if us_reg:
+    if db_table_is_reg(message.chat.id):
         rmk.add(types.KeyboardButton("Начать поиск"), types.KeyboardButton("Выйти из аккаунта"))
     else:
         rmk.add(types.KeyboardButton("Начать поиск"), types.KeyboardButton("Зарегистрироваться"))
     print("_user_answer")
     msg = bot.send_message(message.chat.id, "Привет", reply_markup=rmk)
-    print(message.chat.id)
     bot.register_next_step_handler(msg, user_answer)
 
 
@@ -42,11 +40,6 @@ def user_answer(message):
     elif message.text == "Зарегистрироваться":
         msg = bot.send_message(message.chat.id, "Введите вашу почту для регистрации")
         print(message.text)
-        # добавление в базу данных информации о юзере, почему-то не работает
-        cursor.execute("INSERT INTO users (user_id, mail, password, token) VALUES (?, ?, ?, ?)",
-                       (message.chat.id, "resh@gmail.com", "pass123", "23457yfc"))
-        conn.commit()
-
         bot.register_next_step_handler(msg, reg_mail)
     else:
         msg = bot.send_message(message.chat.id, "Выходим из аккаунта")
@@ -55,8 +48,26 @@ def user_answer(message):
 
 
 def second_station(message):
-    s_station = message.text
+    f_station = message.text
     print("_second_station")
+    print(f_station)
+    # добавляю в бд (будет проверка вводимых данных)
+    db_table_f_station(message.chat.id, f_station)
+
+    msg = bot.send_message(message.chat.id, "Впишите станцию назначения")
+    bot.register_next_step_handler(msg, route_date)
+
+
+def route_date(message):
+    s_station = message.text
+    print("_route_date")
+    print(s_station)
+    # добавить проверку
+    db_table_s_station(message.chat.id, s_station)
+    calendar, step = DetailedTelegramCalendar().build()
+    bot.send_message(message.chat.id,
+                     f"Select {LSTEP[step]}",
+                     reply_markup=calendar)
 
 
 def reg_mail(message):
@@ -104,12 +115,14 @@ def cal(c):
 
 
 # запросы к базе данных работают только здесь, надо исправить
+# первоначальное добавление в таблицу, не будет использоваться повторно
 def db_table_val(user_id: int, mail: str, password: str, token: str):
     cursor.execute("INSERT INTO users (user_id, mail, password, token) VALUES (?, ?, ?, ?)",
                    (user_id, mail, password, token))
     conn.commit()
 
 
+# первоначальное добавление в таблицу, не будет использоваться повторно
 def db_table_chat_id(user_id: int):
     cursor.execute("INSERT INTO users (user_id) VALUES (?)",
                    (user_id))
@@ -130,11 +143,22 @@ def db_table_s_station(user_id: int, s_station: str):
     conn.commit()
 
 
-# добавление города назначения в базу данных
+# удаление городов из базы данных
 def db_table_del_station(user_id: int):
-    cursor.execute("INSERT INTO user_stations (user_id) VALUES (?)",
-                   (user_id))
+    cursor.execute("DELETE FROM user_stations (f_station, s_station) WHERE user_id (?)",
+                   user_id)
     conn.commit()
+
+
+# проверка на наличие регистрации
+def db_table_is_reg(user_id: int):
+    info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
+    if info.fetchone() is None:
+        # Делаем когда нету человека в бд
+        return False
+    else:
+        # Делаем когда есть человек в бд
+        return True
 
 
 bot.polling(none_stop=True, interval=0)

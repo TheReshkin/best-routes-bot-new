@@ -84,8 +84,19 @@ def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0,
     print(res_json)
     # добавить проверку корректности ответа
     route = res_json.get('result')[0]
-    return edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),
-                       route.get('arrivalDateTime'), route.get('departureDateTime'), route.get('departureDateTime'),
-                       route.get('duration'),
-                       route.get('places')[0].get('minPrice'), route.get('url'))
+    if count == 1:
+        return edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),
+                           route.get('arrivalDateTime'), route.get('departureDateTime'), route.get('departureDateTime'),
+                           route.get('duration'),
+                           route.get('places')[0].get('minPrice'), route.get('url'))
+    else:
+        answer = ""
+        for i in range(count):
+            answer += edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),
+                                  route.get('arrivalDateTime'), route.get('departureDateTime'),
+                                  route.get('departureDateTime'),
+                                  route.get('duration'),
+                                  route.get('places')[0].get('minPrice'), route.get('url'))
+            answer += "\n"
+
     # return str(json.loads(response.text))

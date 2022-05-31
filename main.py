@@ -8,17 +8,18 @@ from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from reg import sign
 from database import subd
 
-
 bot = telebot.TeleBot(settings.TOKEN)
 
-# база данных для хранения данных клиентов
-conn = sqlite3.connect('database/user_database.db', check_same_thread=False)
-cursor = conn.cursor()
+try:
+    # база данных для хранения данных клиентов
+    conn = sqlite3.connect('database/user_database.db', check_same_thread=False)
+    cursor = conn.cursor()
+except sqlite3.Error as error:
+    print("Error:", error)
 
 
 @bot.message_handler(commands=["start"])
 def start(message):
-
     rmk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     us_reg = False
     # добавить проверку на наличие регистрации
@@ -41,8 +42,10 @@ def user_answer(message):
     elif message.text == "Зарегистрироваться":
         msg = bot.send_message(message.chat.id, "Введите вашу почту для регистрации")
         print(message.text)
-        # добавление в базу данных информации о юзере
-        subd.db_table_val1(user_id=message.chat.id, mail="resh@gmail.com", password="pass123", token="23457yfc")
+        # добавление в базу данных информации о юзере, почему-то не работает
+        cursor.execute("INSERT INTO users (user_id, mail, password, token) VALUES (?, ?, ?, ?)",
+                       (message.chat.id, "resh@gmail.com", "pass123", "23457yfc"))
+        conn.commit()
 
         bot.register_next_step_handler(msg, reg_mail)
     else:
@@ -98,6 +101,40 @@ def cal(c):
         bot.edit_message_text(f"You selected {result}",
                               c.message.chat.id,
                               c.message.message_id)
+
+
+# запросы к базе данных работают только здесь, надо исправить
+def db_table_val(user_id: int, mail: str, password: str, token: str):
+    cursor.execute("INSERT INTO users (user_id, mail, password, token) VALUES (?, ?, ?, ?)",
+                   (user_id, mail, password, token))
+    conn.commit()
+
+
+def db_table_chat_id(user_id: int):
+    cursor.execute("INSERT INTO users (user_id) VALUES (?)",
+                   (user_id))
+    conn.commit()
+
+
+# добавление города отправления в базу данных
+def db_table_f_station(user_id: int, f_station: str):
+    cursor.execute("INSERT INTO user_stations (user_id, f_station) VALUES (?, ?)",
+                   (user_id, f_station))
+    conn.commit()
+
+
+# добавление города назначения в базу данных
+def db_table_s_station(user_id: int, s_station: str):
+    cursor.execute("INSERT INTO user_stations (user_id) VALUES (?, ?)",
+                   (user_id, s_station))
+    conn.commit()
+
+
+# добавление города назначения в базу данных
+def db_table_del_station(user_id: int):
+    cursor.execute("INSERT INTO user_stations (user_id) VALUES (?)",
+                   (user_id))
+    conn.commit()
 
 
 bot.polling(none_stop=True, interval=0)

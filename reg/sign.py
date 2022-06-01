@@ -4,9 +4,6 @@ import requests
 
 def log_in(mail, password):
     url = "https://best-routes.herokuapp.com/user/login"
-    mail = "resh@grail.com"
-    password = "resh1"
-
     payload = json.dumps({
         "email": mail,
         "password": password
@@ -42,11 +39,9 @@ def log_out(mail, password):
 
 
 def register(mail, password):
-    mail = "resh@grail.com"
-    password = "resh1"
     url = "https://best-routes.herokuapp.com/user/register"
-
-    payload = "{\n    \"email\":" + "\"" + mail + "\"" + ",\n    \"password\": " + "\"" + password + "\"" + "\n}"
+    print(type(mail))
+    payload = "{\n    \"email\":" + "\"" + str(mail) + "\"" + ",\n    \"password\": " + "\"" + str(password) + "\"" + "\n}"
     headers = {"Content-Type": "application/json"}
 
     response = requests.request("POST", url, headers=headers, data=payload)

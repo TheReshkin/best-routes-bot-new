@@ -83,7 +83,7 @@ def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0,
     res_json = response.json()
     print(res_json)
     # добавить проверку корректности ответа
-    # добавить вывод пересадок
+    # добавить вывод пересадок и поправить отображение билета
     route = res_json.get('result')[0]
     if count == 1:
         return edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),

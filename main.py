@@ -5,6 +5,7 @@ import routes.avia
 import settings
 import sqlite3
 
+from sub_data import iata
 from telebot import types
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 
@@ -41,18 +42,20 @@ def cal(c):
         bot.edit_message_text(f"You selected {date_r}",
                               c.message.chat.id,
                               c.message.message_id)
-        # добавить функцию для поиска кодов по городам
-        # routes.avia.get_route("MOV", "LED", str(result), "Y")
-        # routes.avia.get_route("LED", "OLB", date_r, "Y")
-        answer = routes.avia.get_route("LED", "OLB", date_r, "Y")
+
+        dep_code = iata.city_to_iata(str(db_table_get_f_station(c.message.from_user.id)))
+        arrival_code = str(db_table_get_s_station(c.message.from_user.id))
+        dep_date = str(date_r)
+        answer = routes.avia.get_route(dep_code,
+                                       arrival_code, dep_date, "Y")
         time.sleep(5)
-        bot.send_message(c.message.chat.id, answer, parse_mode='Markdown')
+        bot.send_message(c.message.chat.id, answer, parse_mode='Markdown') \
+ \
+        @bot.message_handler(commands=["start"])
 
 
-@bot.message_handler(commands=["start"])
 def start(message):
     rmk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    # добавить проверку на наличие регистрации
     if db_table_is_reg(message.from_user.id):
         rmk.add(types.KeyboardButton("Начать поиск"), types.KeyboardButton("Выйти из аккаунта"))
     else:
@@ -81,25 +84,32 @@ def user_answer(message):
 def second_station(message):
     # добавить проверку города
     f_station = message.text
-    print("_second_station")
-    print(f_station)
-    # добавляю в бд (будет проверка вводимых данных)
-    db_table_f_station(message.from_user.id, f_station)
-
-    msg = bot.send_message(message.chat.id, "Впишите станцию назначения")
-    bot.register_next_step_handler(msg, route_date)
+    if iata.city_to_iata(f_station) is not None:
+        print("_second_station")
+        print(f_station)
+        # добавляю в бд (будет проверка вводимых данных)
+        db_table_f_station(message.from_user.id, f_station)
+        msg = bot.send_message(message.chat.id, "Впишите станцию назначения")
+        bot.register_next_step_handler(msg, route_date)
+    else:
+        msg = bot.send_message(message.chat.id, "Я не знаю такого города")
+        bot.register_next_step_handler(msg, second_station)
 
 
 def route_date(message):
     s_station = message.text
     print("_route_date")
     print(s_station)
-    # добавить проверку
-    db_table_s_station(message.from_user.id, s_station)
-    calendar, step = DetailedTelegramCalendar().build()
-    bot.send_message(message.chat.id,
-                     f"Select {LSTEP[step]}",
-                     reply_markup=calendar)
+    if iata.city_to_iata(s_station) is not None:
+        # добавить проверку
+        db_table_s_station(message.from_user.id, s_station)
+        calendar, step = DetailedTelegramCalendar().build()
+        bot.send_message(message.chat.id,
+                         f"Select {LSTEP[step]}",
+                         reply_markup=calendar)
+    else:
+        msg = bot.send_message(message.chat.id, "Я не знаю такого города")
+        bot.register_next_step_handler(msg, route_date)
 
 
 def reg_mail(message):
@@ -169,7 +179,6 @@ def db_table_token(user_id: int, token: str):
 
 # добавление города отправления в базу данных
 def db_table_f_station(user_id: int, f_station: str):
-
     info = cursor.execute('SELECT * FROM user_stations WHERE user_id=?', (user_id,))
 
     if info.fetchone() is None:
@@ -239,8 +248,22 @@ def db_table_get_password(user_id: int):
     return password
 
 
-def db_table_get_token():
-    pass
+def db_table_get_token(user_id: int):
+    token = cursor.execute('SELECT token FROM users WHERE user_id=?', (user_id,))
+    print(token)
+    return token
+
+
+def db_table_get_f_station(user_id: int):
+    f_station = cursor.execute("SELECT f_station FROM user_stations WHERE user_id=?", (user_id,))
+    print(f_station)
+    return f_station
+
+
+def db_table_get_s_station(user_id: int):
+    s_station = cursor.execute('SELECT s_station FROM user_stations WHERE user_id=?', (user_id,))
+    print(s_station)
+    return s_station
 
 
 bot.polling(none_stop=True, interval=0)

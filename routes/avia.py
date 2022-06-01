@@ -71,11 +71,11 @@ def edit_answer(s_station, f_station, dep_time, dep_date, arr_time, arr_date, tr
     return answer
 
 
-def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0, infant=0, count=1):
+def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0, infant=0, count=-1):
     # отправления/прибытия указывать из городов
     # исправить добавление параметров
     url = "https://best-routes.herokuapp.com//routes/avia?departureCode=" + dep_code + "&arrivalCode=" + arrival_code + "&departureDate=" \
-          + dep_date + "&adult=" + str(adult) + "&child=" + str(child) + "&infant=" + \
+          + str(dep_date) + "&adult=" + str(adult) + "&child=" + str(child) + "&infant=" + \
           str(infant) + "&serviceClass=" + service_class + "&count=" + str(count)
     payload = {}
     headers = {}
@@ -83,6 +83,7 @@ def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0,
     res_json = response.json()
     print(res_json)
     # добавить проверку корректности ответа
+    # добавить вывод пересадок
     route = res_json.get('result')[0]
     if count == 1:
         return edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),
@@ -92,11 +93,5 @@ def get_route(dep_code, arrival_code, dep_date, service_class, adult=1, child=0,
     else:
         answer = ""
         for i in range(count):
-            answer += edit_answer(route.get('arrival'), route.get('departure'), route.get('arrivalDateTime'),
-                                  route.get('arrivalDateTime'), route.get('departureDateTime'),
-                                  route.get('departureDateTime'),
-                                  route.get('duration'),
-                                  route.get('places')[0].get('minPrice'), route.get('url'))
-            answer += "\n"
-
-    # return str(json.loads(response.text))
+            answer += "pass"
+            return answer

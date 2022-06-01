@@ -1,6 +1,7 @@
 import telebot
-
+import time
 import reg.sign
+import routes.avia
 import settings
 import sqlite3
 
@@ -30,16 +31,22 @@ def date_cal(m):
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func())
 def cal(c):
-    result, key, step = DetailedTelegramCalendar().process(c.data)
-    if not result and key:
+    date_r, key, step = DetailedTelegramCalendar().process(c.data)
+    if not date_r and key:
         bot.edit_message_text(f"Select {LSTEP[step]}",
                               c.message.chat.id,
                               c.message.message_id,
                               reply_markup=key)
-    elif result:
-        bot.edit_message_text(f"You selected {result}",
+    elif date_r:
+        bot.edit_message_text(f"You selected {date_r}",
                               c.message.chat.id,
                               c.message.message_id)
+        # добавить функцию для поиска кодов по городам
+        # routes.avia.get_route("MOV", "LED", str(result), "Y")
+        # routes.avia.get_route("LED", "OLB", date_r, "Y")
+        answer = routes.avia.get_route("LED", "OLB", date_r, "Y")
+        time.sleep(5)
+        bot.send_message(c.message.chat.id, answer, parse_mode='Markdown')
 
 
 @bot.message_handler(commands=["start"])
@@ -111,7 +118,7 @@ def reg_password(message):
     db_table_password(message.from_user.id, password)
     msg = bot.send_message(message.chat.id, "Регистрация завершена, теперь у вас есть личный токен")
     db_table_token(message.from_user.id, reg.sign.register(db_table_get_mail(message.from_user.id),
-                                                         db_table_get_password(message.from_user.id)))
+                                                           db_table_get_password(message.from_user.id)))
 
 
 def mail_out(message):
@@ -162,7 +169,9 @@ def db_table_token(user_id: int, token: str):
 
 # добавление города отправления в базу данных
 def db_table_f_station(user_id: int, f_station: str):
+
     info = cursor.execute('SELECT * FROM user_stations WHERE user_id=?', (user_id,))
+
     if info.fetchone() is None:
         cursor.execute("INSERT INTO user_stations (user_id, f_station) VALUES (?, ?)",
                        (user_id, f_station))
